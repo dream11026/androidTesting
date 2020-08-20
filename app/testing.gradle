@@ -1,0 +1,185 @@
+apply plugin: 'jacoco'
+apply plugin: 'de.mannodermaus.android-junit5' // junit5 doesn't support android projects out of the box
+
+ext {
+    // ui test
+    android_test_version = '1.2.0'
+    cucumber_android_version = '4.4.0'
+    espresso_version = '3.2.0'
+
+    // unit test
+    spek_version = '2.0.12'
+    junit_jupiter_version = '5.5.0'
+    junit5_runner = '0.2.2'
+}
+
+String buildType = project.getProperties().get('buildType') ?: 'Debug'
+
+android {
+    defaultConfig {
+        testApplicationId "${android.defaultConfig.applicationId}.test"
+        testInstrumentationRunner "${testApplicationId}.CucumberBDDTestRunner"
+
+        println "App applicationId = ${android.defaultConfig.applicationId}  Ver.${android.defaultConfig.versionName}"
+
+        testInstrumentationRunnerArguments clearPackageData: 'true' //每次測試前都完全地清空所有資料，並重新授與App權限
+//        testInstrumentationRunnerArguments = [
+//                clearPackageData: 'true' //每次測試前都完全地清空所有資料，並重新授與App權限
+//        ]
+    }
+
+    buildTypes.all {
+        buildConfigField 'String', 'TEST_TAGS', "\"${getTestTags()}\""
+        buildConfigField 'String', 'TEST_SCENARIO', "\"${getTestScenario()}\""
+
+        testCoverageEnabled true //覆蓋率
+    }
+
+    sourceSets.each {
+        // Add Kotlin source directory to all source sets
+        it.java.srcDirs += "src/$it.name/kotlin"
+    }
+
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+
+        junitPlatform {
+            filters {
+                engines {
+                    include 'spek2' // Setup Spek2
+                }
+            }
+            jacocoOptions {
+                // here goes all jacoco config, for example
+                html.enabled = true
+                xml.enabled = false
+                csv.enabled = false
+            }
+        }
+
+        unitTests.all {
+            unitTests.includeAndroidResources = true
+
+            //Android Studio 3.4 and higher provide compiled versions of your resources by default.
+            unitTests.returnDefaultValues = true
+
+            //Using JUnit 5 (JUnit Platform + JUnit Jupiter + JUnit Vintage)
+            useJUnitPlatform()
+
+            testLogging.events = ["passed", "skipped", "failed"]
+
+            animationsDisabled true //禁用動畫
+            ignoreFailures = true //讓Unit Test不會中斷
+        }
+    }
+
+    if ("Release" == buildType) {
+        // UI TEST設定產生有Release環境connectedReleaseAndroidTest的TASK
+        // 不要預設開啟，否則Android test編譯會無法參照引用libray套件
+        testBuildType "release"
+    }
+}
+
+def getTestTags() {
+    project.getProperties().get('tags') ?: ''
+}
+
+def getTestScenario() {
+    project.getProperties().get('scenario') ?: ''
+}
+
+configurations {
+    antJUnit
+}
+
+dependencies {
+    // TDD Unit Test==============================
+    testImplementation 'junit:junit:4.13'
+
+    // spek
+    testImplementation "org.spekframework.spek2:spek-dsl-jvm:$spek_version"
+    testImplementation "org.spekframework.spek2:spek-runner-junit5:$spek_version"
+
+    // spek requires kotlin-reflect, omit when already in classpath
+    testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+    //antJUnit
+    antJUnit 'org.apache.ant:ant-junit:1.10.5'
+
+    // BDD UI Android Test==============================
+    androidTestImplementation "androidx.test:runner:$android_test_version"
+    androidTestImplementation "androidx.test:rules:$android_test_version"
+
+    // orchestrator
+    androidTestUtil "androidx.test:orchestrator:$android_test_version" //每一個test case當crash時，不影響其他test case
+
+    // espresso
+    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_version"
+
+    // cucumber
+    androidTestImplementation group: 'io.cucumber', name: 'cucumber-android', version: cucumber_android_version
+    androidTestImplementation group: 'io.cucumber', name: 'cucumber-picocontainer', version: cucumber_android_version
+}
+
+/**
+ * UiTest
+ * buildType預設跑Debug環境
+ *
+ * cmd:
+ * gradlew runUiTest -PbuildType="Debug" -Ptags="@Main"
+ * gradlew runUiTest -PbuildType="Debug" -Ptags="@Login,@Text"
+ * gradlew runUiTest -PbuildType="Debug"
+ * gradlew runUiTest -PbuildType="Release"
+ */
+task runUiTest(group: 'test') {
+    println "*** runUiTest configuration phase. ***"
+    file("$buildDir/reports").delete()
+    file("$buildDir/outputs/androidTest-results").delete()
+
+    // run ui test
+    println "*** run ui test, buildType >> ${buildType} ***"
+    dependsOn "connected${buildType}AndroidTest"
+}
+
+/**
+ * Compile all the unit test results into a single one.
+ *
+ * buildType預設跑Debug環境
+ *
+ * cmd:
+ * gradlew mergeUnitTestReports -PbuildType="Debug"
+ */
+task mergeUnitTestReports(group: 'test') {
+    // init
+    println "*** mergeUnitTestReports configuration phase. ***"
+    String buildTypeTask = "test${buildType}UnitTest"
+    File resultsDir = file("$buildDir/test-results/${buildTypeTask}")
+    File targetDir = file("$buildDir/test-results/merged")
+
+    resultsDir.deleteDir()
+    targetDir.deleteDir()
+    println "test reports output: ${resultsDir}"
+    println "test merged reports output: ${targetDir}"
+    println "clean unit test dir success. run type => ${buildTypeTask}"
+
+    // run unit test
+    println '*** step 1 run unit test ***'
+    dependsOn buildTypeTask
+
+    doFirst {
+        println '*** step 1 run unit test completed ***'
+
+        // merge unit test reports
+        println '*** step 2 doFirst mergeJUnitReports ***'
+        ant.taskdef(name: 'junitreport',
+                classname: 'org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator',
+                classpath: configurations.antJUnit.asPath)
+
+        ant.junitreport(todir: resultsDir) {
+            fileset(dir: resultsDir, includes: 'TEST-*.xml')
+            report(todir: targetDir, format: 'frames')
+        }
+        println '*** step 2 doFirst mergeJUnitReports completed ***'
+    }
+
+}

@@ -1,0 +1,66 @@
+# This is the minimum version number required.
+# Update this, if you use features of a newer version
+fastlane_version "2.60.1"
+default_platform :android
+gradle_path = './gradlew'
+default_platform:android
+
+platform:android do
+  lane :test do |values|
+    buildType = values[:buildType] ? "-PbuildType='#{values[:buildType]}'" : ''
+    testType = values[:testType] : 'TDD'
+    tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
+
+    parameters =''
+
+    case testType
+        when 'Unit'
+            desc "Gradle Run Unit Test "
+            gradle(task: 'mergeUnitTestReports')
+        when 'UI'
+            desc "Gradle Run UI Test "
+            gradle(task: "runUiTest #{tags}")
+        when 'ALL'
+            desc "Gradle Run Unit and UI Test "
+            gradle(task: 'mergeUnitTestReports')
+            gradle(task: "runUiTest #{tags}")
+    end
+
+  end
+end
+
+#======================================================================
+#Run in Gradle
+#UNIT TEST:
+#gradlew mergeUnitTestReports -PbuildType="Debug"
+#
+#UI TEST:
+#gradlew runUiTest -PbuildType="Debug" -Ptags="@Main"
+#gradlew runUiTest -PbuildType="Debug" -Ptags="@Login,@Text"
+#gradlew runUiTest -PbuildType="Debug"
+#gradlew runUiTest -PbuildType="Release"
+#======================================================================
+#Run in Fastlane:
+#fastlane android test buildType:debug testType:TDD
+#fastlane android test buildType:debug testType:BDD tags:@Login,@Text
+#fastlane android test buildType:debug testType:ALL tags:@Main
+#======================================================================
+#buildType:(駝峰式命名)
+#Debug
+#Release
+#Stage(不一定有，依據App Project定義)
+#======================================================================
+#testType:
+#UNIT
+#UI
+#ALL
+#======================================================================
+#tags:(可一次多個，駝峰式命名)
+#@Login
+#@Main
+#@SmallTest
+#@MediumTest
+#@LargeTest
+#@SmallTest,@Main
+#@(custom name): 自訂腳本tag名稱 ex:@main
+#=======================================================================
