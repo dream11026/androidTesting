@@ -8,7 +8,7 @@ default_platform:android
 platform:android do
   lane :test do |values|
     buildType = values[:buildType] ? "-PbuildType='#{values[:buildType]}'" : ''
-    testType = values[:testType] : 'TDD'
+    testType = values[:testType] ? values[:testType] : 'TDD'
     tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
 
     parameters =''
