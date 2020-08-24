@@ -128,6 +128,10 @@ dependencies {
 // ==================================================================
 final File outputDir = file("$buildDir/test-output") //UI和UNIT TEST最後的報告輸出位置
 
+task clearOutputReport(group: 'test') {
+    outputDir.deleteDir() //清除報告最後輸出位置，由fastlane指定控制
+}
+
 /**
  * UiTest
  * buildType預設跑Debug環境
@@ -153,10 +157,10 @@ task runUiTest(group: 'test') {
         tasks.findByName(buildTypeTask).ignoreFailures = true
         println "set runUiTest ignoreFailures = true"
 
+        println "ui test reports output: ${resultsDir}"
         file("$buildDir/reports/androidTests").deleteDir()
         resultsDir = file("$buildDir/outputs/androidTest-results/connected")
         resultsDir.deleteDir()
-        println "ui test reports output: ${resultsDir}"
         println "clean ui test dir success. Ready to execute task => ${buildTypeTask}"
     }
 
@@ -196,11 +200,11 @@ task mergeUnitTestReports(group: 'test') {
 
     afterEvaluate {
         println "*** initialize mergeUnitTestReports ***"
+
         file("$buildDir/reports/tests").deleteDir()
         resultsDir = file("$buildDir/test-results/${buildTypeTask}")
         targetDir = file("$buildDir/test-results/merged")
 
-        outputDir.deleteDir()
         resultsDir.deleteDir()
         targetDir.deleteDir()
         println "unit test reports output: ${resultsDir}"

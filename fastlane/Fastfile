@@ -11,6 +11,9 @@ platform:android do
     testType = values[:testType] ? values[:testType] : 'TDD'
     tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
 
+    #clear output reports
+    gradle(task: 'clearOutputReport')
+
     case testType
         when 'Unit'
             desc "Gradle Run Unit Test "

@@ -10,7 +10,6 @@ import org.spekframework.spek2.style.specification.describe
 object Spec : Spek({
     describe("A set") {
         val set by memoized { mutableSetOf<String>() }
-//        val set = mutableListOf<String>()
 
         context("is empty") {
             beforeEachTest {
