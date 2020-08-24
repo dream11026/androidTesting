@@ -139,6 +139,11 @@ task runUiTest(group: 'test') {
     // run ui test
     println "*** run ui test, buildType >> ${buildType} ***"
     dependsOn "connected${buildType}AndroidTest"
+
+    afterEvaluate {
+        println "afterEvaluate"
+        tasks.findByName("connected${buildType}AndroidTest").ignoreFailures = true
+    }
 }
 
 /**

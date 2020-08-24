@@ -1,6 +1,6 @@
 Feature: BDD Enter login details
 
-    @LargeTest
+  @LargeTest
     @Main
     @Login
   Scenario Outline: Successful login A
@@ -11,4 +11,4 @@ Feature: BDD Enter login details
     Examples:
       | account          | password |
       | someone@mail.com | 12345678 |
-#      | test@gmail.com   | 111      |
+      | test@gmail.com   | 111      |
