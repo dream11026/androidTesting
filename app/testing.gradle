@@ -13,7 +13,7 @@ ext {
     junit5_runner = '0.2.2'
 }
 
-String buildType = project.getProperties().get('buildType') ?: 'Debug'
+String buildType = project.getProperties().get('buildType') ?: 'Debug' //開頭必須大寫
 
 android {
     defaultConfig {
@@ -73,10 +73,11 @@ android {
         }
     }
 
-    if ("Release" == buildType) {
-        // UI TEST設定產生有Release環境connectedReleaseAndroidTest的TASK
-        // 不要預設開啟，否則Android test編譯會無法參照引用libray套件
-        testBuildType "release"
+    if (!"Debug".equalsIgnoreCase(buildType)) {
+        // UI TEST設定產生非Debug環境必須指定testBuildType，才會有對應的Task可用
+        // 不要預設開啟，否則Android test編譯會無法參照引用Libray套件
+        println "buildType not default 'Debug', now buildType is ${buildType}."
+        testBuildType buildType.toLowerCase()
     }
 }
 
@@ -111,7 +112,8 @@ dependencies {
     androidTestImplementation "androidx.test:rules:$android_test_version"
 
     // orchestrator
-    androidTestUtil "androidx.test:orchestrator:$android_test_version" //每一個test case當crash時，不影響其他test case
+    androidTestUtil "androidx.test:orchestrator:$android_test_version"
+    //每一個test case當crash時，不影響其他test case
 
     // espresso
     androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_version"
@@ -120,6 +122,11 @@ dependencies {
     androidTestImplementation group: 'io.cucumber', name: 'cucumber-android', version: cucumber_android_version
     androidTestImplementation group: 'io.cucumber', name: 'cucumber-picocontainer', version: cucumber_android_version
 }
+
+// ==================================================================
+// Custom test methods
+// ==================================================================
+final File outputDir = file("$buildDir/test-output") //UI和UNIT TEST最後的報告輸出位置
 
 /**
  * UiTest
@@ -132,17 +139,37 @@ dependencies {
  * gradlew runUiTest -PbuildType="Release"
  */
 task runUiTest(group: 'test') {
+    // init
     println "*** runUiTest configuration phase. ***"
-    file("$buildDir/reports").delete()
-    file("$buildDir/outputs/androidTest-results").delete()
+    buildType = buildType.capitalize()//開頭轉大寫
+    String buildTypeTask = "connected${buildType}AndroidTest"    // run ui test
+    println "*** config dependsOn run ui test, buildType >> ${buildType} ***"
+    dependsOn buildTypeTask
 
-    // run ui test
-    println "*** run ui test, buildType >> ${buildType} ***"
-    dependsOn "connected${buildType}AndroidTest"
+    File resultsDir
 
     afterEvaluate {
-        println "afterEvaluate"
-        tasks.findByName("connected${buildType}AndroidTest").ignoreFailures = true
+        println "*** initialize runUiTest ***"
+        tasks.findByName(buildTypeTask).ignoreFailures = true
+        println "set runUiTest ignoreFailures = true"
+
+        file("$buildDir/reports/androidTests").deleteDir()
+        resultsDir = file("$buildDir/outputs/androidTest-results/connected")
+        resultsDir.deleteDir()
+        println "ui test reports output: ${resultsDir}"
+        println "clean ui test dir success. Ready to execute task => ${buildTypeTask}"
+    }
+
+    doLast {
+        // 複製輸出報告
+        copy {
+            println "set copy Ui test report output\nfrom ${resultsDir}\nto ${outputDir}"
+            from(resultsDir) {
+                include '*.xml'
+            }
+            into outputDir
+            println '*** Finally copy ui test report completed ***'
+        }
     }
 }
 
@@ -157,19 +184,29 @@ task runUiTest(group: 'test') {
 task mergeUnitTestReports(group: 'test') {
     // init
     println "*** mergeUnitTestReports configuration phase. ***"
+    buildType = buildType.capitalize()//開頭轉大寫
     String buildTypeTask = "test${buildType}UnitTest"
-    File resultsDir = file("$buildDir/test-results/${buildTypeTask}")
-    File targetDir = file("$buildDir/test-results/merged")
-
-    resultsDir.deleteDir()
-    targetDir.deleteDir()
-    println "test reports output: ${resultsDir}"
-    println "test merged reports output: ${targetDir}"
-    println "clean unit test dir success. run type => ${buildTypeTask}"
 
     // run unit test
-    println '*** step 1 run unit test ***'
+    println '*** step 1 config dependsOn run unit test ***'
     dependsOn buildTypeTask
+
+    File resultsDir
+    File targetDir
+
+    afterEvaluate {
+        println "*** initialize mergeUnitTestReports ***"
+        file("$buildDir/reports/tests").deleteDir()
+        resultsDir = file("$buildDir/test-results/${buildTypeTask}")
+        targetDir = file("$buildDir/test-results/merged")
+
+        outputDir.deleteDir()
+        resultsDir.deleteDir()
+        targetDir.deleteDir()
+        println "unit test reports output: ${resultsDir}"
+        println "merged unit test reports output: ${targetDir}"
+        println "clean unit test dir success. Ready to execute task => ${buildTypeTask}"
+    }
 
     doFirst {
         println '*** step 1 run unit test completed ***'
@@ -187,4 +224,15 @@ task mergeUnitTestReports(group: 'test') {
         println '*** step 2 doFirst mergeJUnitReports completed ***'
     }
 
+    doLast {
+        // 複製輸出報告
+        copy {
+            println "set copy Unit test report output\nfrom ${resultsDir}\nto ${outputDir}"
+            from(resultsDir) {
+                include 'TESTS-TestSuites.xml'
+            }
+            into outputDir
+            println '*** Finally copy unit test report completed ***'
+        }
+    }
 }

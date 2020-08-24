@@ -11,8 +11,6 @@ platform:android do
     testType = values[:testType] ? values[:testType] : 'TDD'
     tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
 
-    parameters =''
-
     case testType
         when 'Unit'
             desc "Gradle Run Unit Test "
