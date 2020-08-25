@@ -129,7 +129,9 @@ dependencies {
 final File outputDir = file("$buildDir/test-output") //UI和UNIT TEST最後的報告輸出位置
 
 task clearOutputReport(group: 'test') {
-    outputDir.deleteDir() //清除報告最後輸出位置，由fastlane指定控制
+    afterEvaluate {
+        outputDir.deleteDir() //清除報告最後輸出位置，由fastlane指定控制
+    }
 }
 
 /**
