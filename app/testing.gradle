@@ -1,5 +1,6 @@
 apply plugin: 'de.mannodermaus.android-junit5' // junit5 doesn't support android projects out of the box
 apply plugin: 'jacoco'
+apply plugin: "com.jaredsburrows.spoon"
 
 ext {
     // ui test
@@ -53,7 +54,7 @@ android {
             jacocoOptions {
                 // here goes all jacoco config, for example
                 html.enabled = true
-                xml.enabled = false
+                xml.enabled = true
                 csv.enabled = false
             }
         }
@@ -122,6 +123,9 @@ dependencies {
     // cucumber
     androidTestImplementation group: 'io.cucumber', name: 'cucumber-android', version: cucumber_android_version
     androidTestImplementation group: 'io.cucumber', name: 'cucumber-picocontainer', version: cucumber_android_version
+
+    // spoon
+    androidTestImplementation group: 'com.squareup.spoon', name: 'spoon-client', version: '1.7.1'
 }
 
 // ==================================================================
@@ -129,12 +133,104 @@ dependencies {
 // ==================================================================
 final File outputDir = file("$buildDir/test-output") //UI和UNIT TEST最後的報告輸出位置
 
+//task grantPermissions(group: 'test') {
+//    afterEvaluate {
+//        buildType = buildType.capitalize()//開頭轉大寫
+//        dependsOn "install${buildType}"
+////        dependsOn "package${buildType}AndroidTest"
+//    }
+//
+//    doLast {
+//        def adb = getAdbPath()
+//        def mainPackageName = android.defaultConfig.applicationId
+//        def permissions = ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"]
+//        def cmd = [adb, 'shell', 'pm', 'grant', mainPackageName]
+//        println "grantPermissions task, show grant cmd -> $cmd"
+//
+//        permissions.each { doPermission ->
+//            println "do grant -> $doPermission"
+//            exec {
+//                commandLine cmd, doPermission
+//            }
+//        }
+//    }
+//}
+
+/**
+ * The path which is used to store the Cucumber files.
+ * @return
+ */
+def getCucumberDevicePath() {
+
+    return "sdcard/Android/data/${android.defaultConfig.applicationId}/files/reports"
+}
+
+/**
+ * @return the known Cucumber report files/directories
+ */
+static def getCucumberReportFileNames() {
+    return ['cucumber.xml', 'cucumber.html', 'cucumber.json']
+}
+
+/**
+ * Downloads all Cucumber reports from the connected device.
+ */
+task downloadCucumberReports(group: 'test') {
+    doLast {
+        description "Downloads the rich Cucumber report files (HTML, XML, JSON) from the connected device"
+        println "Downloads the rich Cucumber report files (HTML, XML, JSON) from the connected device"
+        def deviceSourcePath = getCucumberDevicePath()
+//        def localReportPath = new File(buildDir, "reports/cucumber")
+        def localReportPath = outputDir
+        if (!localReportPath.exists()) {
+            localReportPath.mkdirs()
+        }
+        if (!localReportPath.exists()) {
+            throw new GradleException("Could not create $localReportPath")
+        }
+        def adb = getAdbPath()
+        def files = getCucumberReportFileNames()
+        files.each { fileName ->
+            exec {
+                commandLine adb, 'pull', "$deviceSourcePath/$fileName", localReportPath
+            }
+        }
+    }
+}
+
+/**
+ * Deletes existing Cucumber reports on the device.
+ */
+task deleteExistingCucumberReports(group: 'test') {
+    doLast {
+        description "Removes the rich Cucumber report files (HTML, XML, JSON) from the connected device"
+        println "Removes the rich Cucumber report files (HTML, XML, JSON) from the connected device"
+        def deviceSourcePath = getCucumberDevicePath()
+        def files = getCucumberReportFileNames()
+        files.each { fileName ->
+            def deviceFileName = deviceSourcePath + '/' + fileName
+            def output2 = executeAdb('if [ -d "' + deviceFileName + '" ]; then rm -r "' + deviceFileName + '"; else rm -r "' + deviceFileName + '" ; fi')
+            println output2
+        }
+    }
+}
+
 task clearOutputReports(group: 'test') {
     doLast {
         println "*** ready to delete test output reports dir => ${outputDir.getPath()} ***"
         outputDir.deleteDir() //清除報告最後輸出位置，由fastlane指定控制
         println "*** clean test output reports dir completed ***"
     }
+}
+
+spoon {
+    debug = true
+    //this is faster but can be set to false
+    singleInstrumentationCall = true
+    grantAll = true
+    shard = true
+    ignoreFailures = true
+    grantAllPermissions = true
 }
 
 /**
@@ -154,13 +250,19 @@ task runUiTest(group: 'test') {
         // init
         println "*** runUiTest configuration phase. ***"
         buildType = buildType.capitalize()//開頭轉大寫
-        String buildTypeTask = "connected${buildType}AndroidTest"    // run ui test
+//        String buildTypeTask = "connected${buildType}AndroidTest"    // run ui test
+        String buildTypeTask = "spoon${buildType}AndroidTest"    // run ui test (spoon)
         println "*** set dependsOn run ui test, buildType >> ${buildType} ***"
-        dependsOn buildTypeTask
-        tasks.findByName(buildTypeTask).ignoreFailures = true
-        println "set runUiTest ignoreFailures = true"
+//        dependsOn buildTypeTask
+//        tasks.findByName(buildTypeTask).ignoreFailures = true
+//        println "set runUiTest ignoreFailures = true"
+
+        dependsOn "deleteExistingCucumberReports", buildTypeTask
+        mustRunAfter "deleteExistingCucumberReports"
+        finalizedBy 'downloadCucumberReports'
 
         println "*** initialize runUiTest ***"
+
         println "ui test reports output: ${resultsDir}"
         file("$buildDir/reports/androidTests").deleteDir()
         resultsDir = file("$buildDir/outputs/androidTest-results/connected")
@@ -243,4 +345,40 @@ task mergeUnitTestReports(group: 'test') {
             println '*** Finally copy unit test report completed ***'
         }
     }
+}
+
+// ==================================================================
+// Utility methods
+// ==================================================================
+
+/**
+ * Utility method to get the full ADB path
+ * @return the absolute ADB path
+ */
+String getAdbPath() {
+    def adb = android.getAdbExecutable().toString()
+    if (adb.isEmpty()) {
+        throw new GradleException("Could not detect adb path")
+    }
+    return adb
+}
+
+/**
+ * Sometime adb returns '\r' character multiple times.
+ * @param s the original string returned by adb
+ * @return the fixed string without '\r'
+ */
+static def fixAdbOutput(String s) {
+    return s.replaceAll("[\r\n]+", "\n").trim()
+}
+
+/**
+ * Runs the adb tool
+ * @param program the program which is executed on the connected device
+ * @return the output of the adb tool
+ */
+def executeAdb(String program) {
+    def process = new ProcessBuilder(getAdbPath(), "shell", program).redirectErrorStream(true).start()
+    String text = new BufferedReader(new InputStreamReader(process.inputStream)).text
+    return fixAdbOutput(text)
 }
