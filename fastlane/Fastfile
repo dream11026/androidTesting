@@ -10,6 +10,7 @@ platform:android do
     buildType = values[:buildType] ? "-PbuildType='#{values[:buildType]}'" : ''
     testType = values[:testType] ? values[:testType] : 'TDD'
     tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
+    features = values[:features] ? "-Pfeatures='#{values[:features]}'" : ''
 
     #clear output reports
     gradle(task: 'clearOutputReports')
@@ -20,11 +21,11 @@ platform:android do
             gradle(task: 'mergeUnitTestReports')
         when 'UI'
             desc "Gradle Run UI Test "
-            gradle(task: "runUiTest #{tags}")
+            gradle(task: "runUiTest #{features} #{tags}")
         when 'ALL'
             desc "Gradle Run Unit and UI Test "
             gradle(task: 'mergeUnitTestReports')
-            gradle(task: "runUiTest #{tags}")
+            gradle(task: "runUiTest #{features} #{tags}")
     end
 
   end
@@ -34,18 +35,30 @@ end
 #Run in Gradle
 #UNIT TEST:
 #gradlew mergeUnitTestReports -PbuildType="Debug"
-#
+
 #UI TEST:
-#gradlew runUiTest -PbuildType="Debug" -Ptags="@Main"
-#gradlew runUiTest -PbuildType="Debug" -Ptags="@Login,@Text"
 #gradlew runUiTest -PbuildType="Debug"
 #gradlew runUiTest -PbuildType="Release"
+
+#增加test範圍條件features或tags
+#gradlew runUiTest -PbuildType="Debug" -Ptags="@Main"
+#gradlew runUiTest -PbuildType="Debug" -Ptags="@Login,@Text"
+#gradlew runUiTest -PbuildType="Debug" -Pfeatures="crucial"
+#gradlew runUiTest -PbuildType="Debug" -Pfeatures="crucial" -Ptags="@Main"
+
 #======================================================================
 #Run in Fastlane:
 #fastlane android test buildType:debug testType:TDD
+#fastlane android test buildType:debug testType:BDD
+#fastlane android test buildType:debug testType:ALL
+
+#增加test範圍條件features或tags
 #fastlane android test buildType:debug testType:BDD tags:@Login,@Text
 #fastlane android test buildType:debug testType:ALL tags:@Main
-#======================================================================
+#fastlane android test buildType:debug testType:ALL features:crucial tags:@Main
+#fastlane android test buildType:debug testType:ALL features:crucial
+
+#屬性說明======================================================================
 #buildType:(駝峰式命名)
 #Debug
 #Release
@@ -64,4 +77,9 @@ end
 #@LargeTest
 #@SmallTest,@Main
 #@(custom name): 自訂腳本tag名稱 ex:@main
+#=======================================================================
+#features:(依據測試等級分類範圍的定義，UI TEST的Feature也要對應的分層資料夾)
+#low
+#medium
+#crucial
 #=======================================================================

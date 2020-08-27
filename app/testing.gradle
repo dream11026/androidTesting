@@ -14,6 +14,9 @@ ext {
 }
 
 String buildType = project.getProperties().get('buildType') ?: 'Debug' //開頭必須大寫
+final String testFeatures = project.getProperties().get('features') ?: ''
+final String testTags = project.getProperties().get('tags') ?: ''
+final String testScenario = project.getProperties().get('scenario') ?: ''
 
 android {
     defaultConfig {
@@ -30,8 +33,9 @@ android {
     }
 
     buildTypes.all {
-        buildConfigField 'String', 'TEST_TAGS', "\"${getTestTags()}\""
-        buildConfigField 'String', 'TEST_SCENARIO', "\"${getTestScenario()}\""
+        buildConfigField 'String', 'TEST_FEATURES', "\"${testFeatures}\""
+        buildConfigField 'String', 'TEST_TAGS', "\"${testTags}\""
+        buildConfigField 'String', 'TEST_SCENARIO', "\"${testScenario}\""
 
         testCoverageEnabled true //覆蓋率
     }
@@ -80,14 +84,6 @@ android {
         println "buildType not default 'Debug', now buildType is ${buildType}."
         testBuildType buildType.toLowerCase()
     }
-}
-
-def getTestTags() {
-    project.getProperties().get('tags') ?: ''
-}
-
-def getTestScenario() {
-    project.getProperties().get('scenario') ?: ''
 }
 
 configurations {
