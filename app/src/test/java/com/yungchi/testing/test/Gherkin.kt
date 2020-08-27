@@ -29,6 +29,7 @@ object Gherkin : Spek({
             }
 
             Then("it should return the first item") {
+                println("unit test when error Gherkin")
                 assertEquals(item, result)
             }
 

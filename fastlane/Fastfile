@@ -12,7 +12,7 @@ platform:android do
     tags = values[:tags] ? "-Ptags='#{values[:tags]}'" : ''
 
     #clear output reports
-    gradle(task: 'clearOutputReport')
+    gradle(task: 'clearOutputReports')
 
     case testType
         when 'Unit'

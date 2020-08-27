@@ -23,6 +23,7 @@ object Spec : Spek({
             }
 
             it("should contain item") {
+                println("unit test when error Spec")
                 assertEquals("item", set.first())
             }
 

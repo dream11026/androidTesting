@@ -1,5 +1,5 @@
-apply plugin: 'jacoco'
 apply plugin: 'de.mannodermaus.android-junit5' // junit5 doesn't support android projects out of the box
+apply plugin: 'jacoco'
 
 ext {
     // ui test
@@ -17,6 +17,7 @@ String buildType = project.getProperties().get('buildType') ?: 'Debug' //開頭�
 
 android {
     defaultConfig {
+
         testApplicationId "${android.defaultConfig.applicationId}.test"
         testInstrumentationRunner "${testApplicationId}.CucumberBDDTestRunner"
 
@@ -128,9 +129,11 @@ dependencies {
 // ==================================================================
 final File outputDir = file("$buildDir/test-output") //UI和UNIT TEST最後的報告輸出位置
 
-task clearOutputReport(group: 'test') {
+task clearOutputReports(group: 'test') {
     doLast {
+        println "*** ready to delete test output reports dir => ${outputDir.getPath()} ***"
         outputDir.deleteDir() //清除報告最後輸出位置，由fastlane指定控制
+        println "*** clean test output reports dir completed ***"
     }
 }
 
@@ -145,20 +148,19 @@ task clearOutputReport(group: 'test') {
  * gradlew runUiTest -PbuildType="Release"
  */
 task runUiTest(group: 'test') {
-    // init
-    println "*** runUiTest configuration phase. ***"
-    buildType = buildType.capitalize()//開頭轉大寫
-    String buildTypeTask = "connected${buildType}AndroidTest"    // run ui test
-    println "*** config dependsOn run ui test, buildType >> ${buildType} ***"
-    dependsOn buildTypeTask
-
     File resultsDir
 
     afterEvaluate {
-        println "*** initialize runUiTest ***"
+        // init
+        println "*** runUiTest configuration phase. ***"
+        buildType = buildType.capitalize()//開頭轉大寫
+        String buildTypeTask = "connected${buildType}AndroidTest"    // run ui test
+        println "*** set dependsOn run ui test, buildType >> ${buildType} ***"
+        dependsOn buildTypeTask
         tasks.findByName(buildTypeTask).ignoreFailures = true
         println "set runUiTest ignoreFailures = true"
 
+        println "*** initialize runUiTest ***"
         println "ui test reports output: ${resultsDir}"
         file("$buildDir/reports/androidTests").deleteDir()
         resultsDir = file("$buildDir/outputs/androidTest-results/connected")
@@ -194,7 +196,7 @@ task mergeUnitTestReports(group: 'test') {
     String buildTypeTask = "test${buildType}UnitTest"
 
     // run unit test
-    println '*** step 1 config dependsOn run unit test ***'
+    println '*** step 1 set dependsOn run unit test ***'
     dependsOn buildTypeTask
 
     File resultsDir
