@@ -57,7 +57,7 @@ android {
             jacocoOptions {
                 // here goes all jacoco config, for example
                 html.enabled = true
-                xml.enabled = false
+                xml.enabled = true
                 csv.enabled = false
             }
         }
@@ -100,6 +100,9 @@ dependencies {
 
     // spek requires kotlin-reflect, omit when already in classpath
     testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+    // mockito
+    testImplementation 'org.mockito:mockito-core:2.23.0'
 
     //antJUnit
     antJUnit 'org.apache.ant:ant-junit:1.10.5'
