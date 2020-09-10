@@ -14,17 +14,18 @@ import androidx.recyclerview.widget.RecyclerView
  * 客製資料 bingding Spinner Adapter
  */
 abstract class BaseSpinAdapter<Data, DB : ViewDataBinding>(
-        context: Context,
-        private val data: List<Data>,
-        private val eventMap: Map<Int, Any> = emptyMap(), //事件集合
-        @LayoutRes private val itemId: Int = 0,//Layout ID
-        private val variableId: Int = 0) //data ID
+    context: Context,
+    private var data: List<Data> = emptyList(),
+    private val eventMap: Map<Int, Any> = emptyMap(), //事件集合
+    @LayoutRes private val itemId: Int = 0,//Layout ID
+    private val variableId: Int = 0
+) //data ID
     : BaseAdapter() {
 
-    val mInflater: LayoutInflater = LayoutInflater.from(context)
+    private val mInflater: LayoutInflater = LayoutInflater.from(context)
 
     inner class BaseSpinViewHolder<Data, DB : ViewDataBinding>(private val viewDataBinding: DB) :
-            RecyclerView.ViewHolder(viewDataBinding.root) {
+        RecyclerView.ViewHolder(viewDataBinding.root) {
         fun bind(execResult: Data) {
             //事件
             eventMap.forEach { (int, action) ->
@@ -66,6 +67,11 @@ abstract class BaseSpinAdapter<Data, DB : ViewDataBinding>(
 
     override fun getItemId(position: Int): Long {
         return position.toLong()
+    }
+
+    fun updateData(data: List<Data>) {
+        this.data = data
+        notifyDataSetChanged()
     }
 
     /**

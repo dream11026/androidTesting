@@ -1,8 +1,8 @@
 package com.yungchi.testing.view
 
 import android.content.Context
-import com.yungchi.testing.R
 import com.yungchi.testing.BR
+import com.yungchi.testing.R
 import com.yungchi.testing.databinding.EventTypeListItemBinding
 import com.yungchi.testing.model.EventTypeSpinModel
 
