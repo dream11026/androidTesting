@@ -1,12 +1,18 @@
 package com.yungchi.testing.view
 
+import android.app.ProgressDialog
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
 import com.yungchi.testing.R
+import com.yungchi.testing.viewmodel.DemoViewModel
+import com.yungchi.testing.viewmodel.IDemoViewData
 import com.yungchi.testing.viewmodel.LoginActivityViewModel
 import com.yungchi.testing.viewmodel.LoginProtocol
 import kotlinx.android.synthetic.main.fragment_login.*
@@ -16,7 +22,9 @@ import kotlinx.android.synthetic.main.fragment_login.*
  */
 class LoginFragment : Fragment(), LoginProtocol {
     lateinit var viewModel: LoginActivityViewModel
-
+    lateinit var mDemoViewModel: DemoViewModel
+    lateinit var mProgressDialog: ProgressDialog
+    lateinit var mFragmentActivity: FragmentActivity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -26,6 +34,12 @@ class LoginFragment : Fragment(), LoginProtocol {
 //            .get(LoginActivityViewModel::class.java)
 
         viewModel = LoginActivityViewModel()
+
+        // TODO for demoTest
+        mFragmentActivity = this.requireActivity()
+        mDemoViewModel = DemoViewModel(iDemoViewData);
+        mProgressDialog = ProgressDialog(mFragmentActivity)
+        mProgressDialog.setTitle("登入中")
     }
 
     override fun onCreateView(
@@ -39,7 +53,7 @@ class LoginFragment : Fragment(), LoginProtocol {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        //        var adapter = EventTypeSpinAdapter(context)
+//        var adapter = EventTypeSpinAdapter(context)
 //        event_type_spinner.adapter = adapter
         viewModel.mEventTypeList.observe(viewLifecycleOwner, Observer { data ->
             if (data.isNotEmpty()) {
@@ -51,13 +65,18 @@ class LoginFragment : Fragment(), LoginProtocol {
         viewModel.initEventTypeList()
 
         btn_login.setOnClickListener() {
-            var pw = et_password.text.toString()
-            if ("12345678".equals(pw)) {
-                tv_hint.text = "login success"
+            val account = et_account.text.toString()
+            val password = et_password.text.toString()
+            if ("" == account || "" == password) {
+                tv_hint.text = ""
+                val toast = Toast.makeText(mFragmentActivity, "帳號或密碼不可為空!!!", Toast.LENGTH_SHORT)
+                toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                toast.show()
             } else {
-                tv_hint.text = "login failed"
+                viewModel.submit()
+                mDemoViewModel.doLogin()
+                mProgressDialog.show()
             }
-            viewModel.submit()
         }
     }
 
@@ -82,5 +101,24 @@ class LoginFragment : Fragment(), LoginProtocol {
 
     override fun startNextActivity() {
         TODO("Not yet implemented")
+    }
+
+    // TODO for demoTest
+    private var iDemoViewData = object : IDemoViewData {
+        override fun updateUserInfo(userName: String, userID: String) {
+            mFragmentActivity.runOnUiThread {
+                mProgressDialog.dismiss()
+                var msg: String
+                if ("" == userID) {
+                    msg = "登入失敗"
+                } else {
+                    msg = "登入成功"
+                    tv_hint.text = "Name: $userName, ID: $userID"
+                }
+                val toast = Toast.makeText(mFragmentActivity, msg, Toast.LENGTH_LONG)
+                toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                toast.show()
+            }
+        }
     }
 }

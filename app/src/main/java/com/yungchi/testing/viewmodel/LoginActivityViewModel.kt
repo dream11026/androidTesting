@@ -30,7 +30,6 @@ interface LoginProtocol {
 //    override val state: Boolean
 //        get() = TODO("Not yet implemented")
 //}
-
 class LoginActivityViewModel(private val loginProtocol: LoginProtocol? = null) : ViewModel(),
     ViewModelProtocol {
 
