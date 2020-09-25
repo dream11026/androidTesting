@@ -1,14 +1,11 @@
 package com.yungchi.testing.test
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.MutableLiveData
-import com.yungchi.testing.model.EventTypeSpinModel
 import com.yungchi.testing.test.MVVMCSpec.viewModel
 import com.yungchi.testing.viewmodel.LoginActivityViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.mockito.InjectMocks
-import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
 import org.spekframework.spek2.Spek
@@ -43,14 +40,18 @@ object MVVMCSpec : Spek({
 //                    )
 //                ))
             }
-            it("should have a size > 0") {
+            it("檢核EVENT清單") {
                 //TODO observeForever有問題
 //                viewModel.mEventTypeList.observeForever(Observer { data ->
 //                    assertEquals("11", data[0])
 //                })
 
+                viewModel.mEventTypeList.binding(false) { data ->
+                    var temp = data?.get(0)
+                    assertEquals("11", temp?.CLS_CODE)
+                    assertEquals("11",  temp?.CLS_NM)
+                }
                 viewModel.initEventTypeList()
-                assertEquals("11", viewModel.mEventTypeList.value?.get(0))
             }
 
         }
@@ -59,8 +60,8 @@ object MVVMCSpec : Spek({
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
-    @Mock
-    lateinit var mEventTypeList: MutableLiveData<List<EventTypeSpinModel>>
+//    @Mock
+//    lateinit var mEventTypeList: MutableLiveData<List<EventTypeSpinModel>>
 
     @InjectMocks
     lateinit var viewModel: LoginActivityViewModel

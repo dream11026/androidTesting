@@ -1,8 +1,8 @@
 package com.yungchi.testing.viewmodel
 
 import android.util.Log
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.cathay.main.util.binding.Box
 import com.yungchi.testing.common.ViewModelProtocol
 import com.yungchi.testing.model.EventTypeSpinModel
 import com.yungchi.testing.utils.GsonUtil
@@ -36,8 +36,8 @@ class LoginActivityViewModel(private val loginProtocol: LoginProtocol? = null) :
     private val tag = this.javaClass.simpleName
 
     //事件類型清單
-    var mEventTypeList = MutableLiveData<List<EventTypeSpinModel>>() // todo  single event
-    var eventTypePosition = MutableLiveData<Int>()
+    var mEventTypeList: Box<List<EventTypeSpinModel>> = Box(null) // todo  single event
+    var eventTypePosition: Box<Int> = Box(0)
     private var selectedClsCode: String? = null
         get() {
             //更新選擇的事件類型代碼

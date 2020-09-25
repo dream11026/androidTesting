@@ -9,7 +9,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.Observer
 import com.yungchi.testing.R
 import com.yungchi.testing.viewmodel.DemoViewModel
 import com.yungchi.testing.viewmodel.IDemoViewData
@@ -55,16 +54,19 @@ class LoginFragment : Fragment(), LoginProtocol {
 
 //        var adapter = EventTypeSpinAdapter(context)
 //        event_type_spinner.adapter = adapter
-        viewModel.mEventTypeList.observe(viewLifecycleOwner, Observer { data ->
-            if (data.isNotEmpty()) {
+
+//        viewModel.mEventTypeList.observe(viewLifecycleOwner, Observer { data ->
+        viewModel.mEventTypeList.binding(false) { data ->
+            if (!data.isNullOrEmpty()) {
 //                adapter.updateData(data)
                 event_type_spinner.adapter = EventTypeSpinAdapter(requireContext(), data)
             }
-        })
+        }
 
         viewModel.initEventTypeList()
 
-        btn_login.setOnClickListener() {
+        btn_login.setOnClickListener()
+        {
             val account = et_account.text.toString()
             val password = et_password.text.toString()
             if ("" == account || "" == password) {
